@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>2048 Flex – Multi Size Edition</title>
+
+  <!-- PWA: viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- PWA: tema rengi (adres çubuğu rengi vs.) -->
+  <meta name="theme-color" content="#ffeb3b" />
+
+  <!-- PWA: iOS benzeri cihazlarda tam ekran -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="2048 Flex" />
+
+  <!-- PWA: manifest dosyası -->
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- PWA: iOS ikon fallback -->
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.5s ease;
+      background: #ffeb3b;
+      color: #fdfdfd;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 430px;
+      padding: 20px;
+    }
+
+    button {
+      border: none;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #26c6da, #00838f);
+      color: #e0f7fa;
+      font-weight: 600;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      font-size: 18px;
+      border-radius: 999px;
+    }
+
+    .sound-muted {
+      opacity: 0.45;
+      transform: scale(0.85);
+      box-shadow: none;
+    }
+
+    .title {
+      font-size: 40px;
+      font-weight: 800;
+      color: #ff6f00;
+    }
+
+    /* START SCREEN */
+    .start-screen {
+      position: relative;
+      background: rgba(250, 248, 239, 0.96);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+      padding: 24px;
+      color: #776e65;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .start-card {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .start-settings-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .board-size-picker {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .size-label {
+      min-width: 80px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    /* Giriş ekranı: boyut önizleme */
+    .size-preview {
+      width: 130px;
+      height: 130px;
+      background: #bbada0;
+      border-radius: 10px;
+      padding: 6px;
+      display: grid;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+
+    .size-cell {
+      background: rgba(238,228,218,0.8);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: #776e65;
+    }
+
+    .size-cell.tile-preview {
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* SETTINGS SCREEN */
+    .settings-screen {
+      background: rgba(250, 248, 239, 0.96);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+      padding: 24px;
+      color: #776e65;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .settings-title {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .settings-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 260px;
+      align-items: center;
+    }
+
+    .settings-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .toggle-active {
+      box-shadow: 0 0 0 2px #26c6da, 0 3px 8px rgba(0,0,0,0.25);
+    }
+
+    /* GAME SCREEN */
+    .game-panel {
+      background: #faf8ef;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+      padding: 18px;
+      color: #776e65;
+      display: none;
+    }
+
+    .title-bar {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .score-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .score-box {
+      background: linear-gradient(135deg, #ff9800, #ff5722);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 90px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .score-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    .score-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .board {
+      background: #bbada0;
+      padding: 10px;
+      border-radius: 10px;
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      aspect-ratio: 1;
+    }
+
+    .tile {
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+      font-size: 24px;
+    }
+
+    .tile.empty {
+      background: rgba(238, 228, 218, 0.35);
+      color: transparent;
+    }
+
+    .tile-2   { background: #ffeb3b; color: #5d4037; }
+    .tile-4   { background: #ffc107; color: #5d4037; }
+    .tile-8   { background: #ff9800; color: #fff; }
+    .tile-16  { background: #ff5722; color: #fff; }
+    .tile-32  { background: #ff4081; color: #fff; }
+    .tile-64  { background: #e91e63; color: #fff; }
+    .tile-128 { background: #9c27b0; color: #fff; }
+    .tile-256 { background: #673ab7; color: #fff; }
+    .tile-512 { background: #3f51b5; color: #fff; }
+    .tile-1024{ background: #2196f3; color: #fff; }
+    .tile-2048{ background: #00bcd4; color: #fff; }
+
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      min-height: 18px;
+      color: #5d4037;
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+
+  <!-- Arkaplan müziği -->
+  <audio id="bg-music" loop>
+    <source src="bg-music.mp3" type="audio/mpeg">
+    <source src="bg-music.ogg" type="audio/ogg">
+  </audio>
+
+  <!-- START SCREEN -->
+  <div class="start-screen" id="start-screen">
+    <button id="start-settings" class="icon-btn start-settings-btn" aria-label="Settings">&#9881;</button>
+
+    <div class="start-card">
+      <div class="title">2048 Flex</div>
+
+      <div class="board-size-picker">
+        <button id="size-prev" class="icon-btn" aria-label="Previous size">&#9664;</button>
+        <div id="size-label" class="size-label">4 x 4</div>
+        <button id="size-next" class="icon-btn" aria-label="Next size">&#9654;</button>
+      </div>
+
+      <div id="size-preview" class="size-preview"></div>
+
+      <button id="btn-start">Start</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="settings-screen" id="settings-screen">
+    <div class="settings-title">Settings</div>
+
+    <div class="settings-buttons">
+      <button id="settings-return">Return</button>
+
+      <div class="settings-row">
+        <button id="settings-game-sound" class="icon-btn" aria-label="Game sound toggle">♪</button>
+        <button id="settings-click-sound" class="icon-btn" aria-label="Click sound toggle">🔊</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="game-panel" id="game-panel">
+
+    <div class="title-bar">
+      <div class="title">2048</div>
+    </div>
+
+    <div class="control-row">
+      <button id="btn-new">New Game</button>
+    </div>
+
+    <div class="top-bar">
+      <div class="score-column">
+        <div class="score-box">
+          <div class="score-label">Best Score</div>
+          <div class="score-value" id="best-score">0</div>
+        </div>
+        <button id="btn-home" class="icon-btn" aria-label="Home">&#127968;</button>
+      </div>
+
+      <div class="score-column" style="align-items: flex-end;">
+        <div class="score-box">
+          <div class="score-label">Score</div>
+          <div class="score-value" id="score">0</div>
+        </div>
+        <button id="btn-undo" class="icon-btn" aria-label="Undo" disabled>&#8635;</button>
+      </div>
+    </div>
+
+    <div class="board" id="board"></div>
+    <div class="status" id="status"></div>
+
+  </div>
+
+</div>
+
+<script>
+  const sizeOptions = [4, 5, 6, 8];
+  let sizeIndex = 0;
+  let size = sizeOptions[sizeIndex];
+
+  const boardEl = document.getElementById("board");
+  const scoreEl = document.getElementById("score");
+  const bestScoreEl = document.getElementById("best-score");
+  const statusEl = document.getElementById("status");
+
+  const newBtn = document.getElementById("btn-new");
+  const undoBtn = document.getElementById("btn-undo");
+  const homeBtn = document.getElementById("btn-home");
+
+  const startScreen = document.getElementById("start-screen");
+  const gamePanel = document.getElementById("game-panel");
+  const settingsScreen = document.getElementById("settings-screen");
+
+  const startBtn = document.getElementById("btn-start");
+  const sizeLabel = document.getElementById("size-label");
+  const sizePrevBtn = document.getElementById("size-prev");
+  const sizeNextBtn = document.getElementById("size-next");
+  const sizePreviewEl = document.getElementById("size-preview");
+  const startSettingsBtn = document.getElementById("start-settings");
+
+  const settingsReturnBtn = document.getElementById("settings-return");
+  const settingsGameSoundBtn = document.getElementById("settings-game-sound");
+  const settingsClickSoundBtn = document.getElementById("settings-click-sound");
+
+  const bgMusic = document.getElementById("bg-music");
+
+  let board = [];
+  let score = 0;
+  let bestScore = 0;
+  let lastBoard = null;
+  let lastScore = 0;
+
+  let gameSoundOn = true;
+  let clickSoundOn = true;
+
+  let audioCtx = null;
+  function ensureAudioContext() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+  }
+
+  function playTone(freq, duration = 0.08, volume = 0.12) {
+    if (!audioCtx) ensureAudioContext();
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    gain.gain.value = volume;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playGameSound() {
+    if (!gameSoundOn) return;
+    playTone(440, 0.12, 0.13);
+  }
+
+  function playClickSound() {
+    if (!clickSoundOn) return;
+    playTone(260, 0.06, 0.08);
+  }
+
+  function updateMusicState() {
+    if (!bgMusic) return;
+    if (gameSoundOn) {
+      bgMusic.volume = 0.4;
+      bgMusic.play().catch(() => {});
+    } else {
+      bgMusic.pause();
+    }
+  }
+
+  const bgColors = {
+    2:"#ffeb3b",4:"#ffc107",8:"#ff9800",16:"#ff5722",
+    32:"#ff4081",64:"#e91e63",128:"#9c27b0",
+    256:"#673ab7",512:"#3f51b5",1024:"#2196f3",2048:"#00bcd4"
+  };
+
+  function updateBackground() {
+    let maxVal = 2;
+    board.flat().forEach(v => { if (v > maxVal) maxVal = v; });
+    document.body.style.background = bgColors[maxVal] || "#ffeb3b";
+  }
+
+  function copyBoard(b) {
+    return b.map(r => r.slice());
+  }
+
+  function updateScores() {
+    scoreEl.textContent = score;
+    if (score > bestScore) bestScore = score;
+    bestScoreEl.textContent = bestScore;
+  }
+
+  function updateSizeLabel() {
+    sizeLabel.textContent = size + " x " + size;
+  }
+
+  function updateSizePreview() {
+    sizePreviewEl.innerHTML = "";
+    sizePreviewEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    sizePreviewEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+
+    const centerR = Math.floor(size / 2);
+    const centerC = Math.floor(size / 2);
+
+    let midValue = 64;
+    if (size >= 5) midValue = 128;
+    if (size >= 6) midValue = 256;
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const cell = document.createElement("div");
+        cell.classList.add("size-cell");
+
+        let value = 0;
+        if (r === centerR && c === centerC) {
+          value = midValue;
+        } else if (r === centerR && c === centerC - 1) {
+          value = 32;
+        } else if (r === centerR && c === centerC + 1) {
+          value = 16;
+        } else if (r === centerR - 1 && c === centerC) {
+          value = 8;
+        } else if (r === centerR + 1 && c === centerC) {
+          value = 4;
+        }
+
+        if (value > 0) {
+          cell.classList.add("tile-preview", "tile-" + value);
+          cell.textContent = value;
+        }
+
+        sizePreviewEl.appendChild(cell);
+      }
+    }
+  }
+
+  function setupBoard() {
+    boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    boardEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+
+    board = Array.from({ length: size }, () => Array(size).fill(0));
+    score = 0;
+    lastBoard = null;
+    lastScore = 0;
+    undoBtn.disabled = true;
+    statusEl.textContent = "";
+
+    spawnTile();
+    spawnTile();
+    drawBoard();
+    updateScores();
+    updateBackground();
+  }
+
+  function spawnTile() {
+    const empty = [];
+    for (let r = 0; r < size; r++)
+      for (let c = 0; c < size; c++)
+        if (board[r][c] === 0) empty.push({ r, c });
+    if (!empty.length) return;
+    const { r, c } = empty[Math.floor(Math.random() * empty.length)];
+    board[r][c] = Math.random() < 0.9 ? 2 : 4;
+  }
+
+  function drawBoard() {
+    boardEl.innerHTML = "";
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const v = board[r][c];
+        const tile = document.createElement("div");
+        tile.classList.add("tile");
+        tile.classList.add(v === 0 ? "empty" : "tile-" + v);
+        tile.textContent = v === 0 ? "" : v;
+        boardEl.appendChild(tile);
+      }
+    }
+  }
+
+  function compressAndMerge(row) {
+    const nonZero = row.filter(v => v !== 0);
+    for (let i = 0; i < nonZero.length - 1; i++) {
+      if (nonZero[i] === nonZero[i + 1]) {
+        nonZero[i] *= 2;
+        score += nonZero[i];
+        nonZero[i + 1] = 0;
+      }
+    }
+    return nonZero.filter(v => v !== 0);
+  }
+
+  function moveLeft() {
+    lastBoard = copyBoard(board);
+    lastScore = score;
+    let moved = false;
+
+    for (let r = 0; r < size; r++) {
+      const newRow = compressAndMerge(board[r]);
+      while (newRow.length < size) newRow.push(0);
+      if (newRow.toString() !== board[r].toString()) moved = true;
+      board[r] = newRow;
+    }
+
+    if (moved) {
+      playClickSound();
+      afterMove();
+    }
+  }
+
+  function moveRight() {
+    lastBoard = copyBoard(board);
+    lastScore = score;
+    let moved = false;
+
+    for (let r = 0; r < size; r++) {
+      const rev = board[r].slice().reverse();
+      const newRow = compressAndMerge(rev).reverse();
+      while (newRow.length < size) newRow.unshift(0);
+      if (newRow.toString() !== board[r].toString()) moved = true;
+      board[r] = newRow;
+    }
+
+    if (moved) {
+      playClickSound();
+      afterMove();
+    }
+  }
+
+  function moveUp() {
+    lastBoard = copyBoard(board);
+    lastScore = score;
+    let moved = false;
+
+    for (let c = 0; c < size; c++) {
+      const col = [];
+      for (let r = 0; r < size; r++) col.push(board[r][c]);
+
+      const merged = compressAndMerge(col);
+      while (merged.length < size) merged.push(0);
+
+      for (let r = 0; r < size; r++) {
+        if (board[r][c] !== merged[r]) moved = true;
+        board[r][c] = merged[r];
+      }
+    }
+
+    if (moved) {
+      playClickSound();
+      afterMove();
+    }
+  }
+
+  function moveDown() {
+    lastBoard = copyBoard(board);
+    lastScore = score;
+    let moved = false;
+
+    for (let c = 0; c < size; c++) {
+      const col = [];
+      for (let r = 0; r < size; r++) col.push(board[r][c]);
+
+      const rev = col.slice().reverse();
+      const merged = compressAndMerge(rev).reverse();
+      while (merged.length < size) merged.unshift(0);
+
+      for (let r = 0; r < size; r++) {
+        if (board[r][c] !== merged[r]) moved = true;
+        board[r][c] = merged[r];
+      }
+    }
+
+    if (moved) {
+      playClickSound();
+      afterMove();
+    }
+  }
+
+  function anyMovesLeft() {
+    for (let r = 0; r < size; r++)
+      for (let c = 0; c < size; c++) {
+        if (board[r][c] === 0) return true;
+        if (c < size - 1 && board[r][c] === board[r][c + 1]) return true;
+        if (r < size - 1 && board[r][c] === board[r + 1][c]) return true;
+      }
+    return false;
+  }
+
+  function checkState() {
+    if (board.flat().includes(2048)) {
+      statusEl.textContent = "Congratulations! You reached 2048 🎉";
+      return;
+    }
+    if (!anyMovesLeft()) {
+      statusEl.textContent = "Game over! Click New Game.";
+    }
+  }
+
+  function afterMove() {
+    spawnTile();
+    drawBoard();
+    updateScores();
+    undoBtn.disabled = false;
+    updateBackground();
+    checkState();
+    playGameSound();
+  }
+
+  undoBtn.addEventListener("click", () => {
+    if (!lastBoard) return;
+    board = copyBoard(lastBoard);
+    score = lastScore;
+    drawBoard();
+    updateScores();
+    updateBackground();
+    undoBtn.disabled = true;
+    statusEl.textContent = "";
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (gamePanel.style.display !== "block") return;
+    if (e.key === "ArrowLeft")  moveLeft();
+    if (e.key === "ArrowRight") moveRight();
+    if (e.key === "ArrowUp")    moveUp();
+    if (e.key === "ArrowDown")  moveDown();
+  });
+
+  function updateSettingsButtonsUI() {
+    if (gameSoundOn) {
+      settingsGameSoundBtn.classList.add("toggle-active");
+      settingsGameSoundBtn.classList.remove("sound-muted");
+    } else {
+      settingsGameSoundBtn.classList.remove("toggle-active");
+      settingsGameSoundBtn.classList.add("sound-muted");
+    }
+
+    if (clickSoundOn) {
+      settingsClickSoundBtn.classList.add("toggle-active");
+      settingsClickSoundBtn.classList.remove("sound-muted");
+    } else {
+      settingsClickSoundBtn.classList.remove("toggle-active");
+      settingsClickSoundBtn.classList.add("sound-muted");
+    }
+  }
+
+  newBtn.addEventListener("click", () => {
+    setupBoard();
+    updateMusicState();
+  });
+
+  homeBtn.addEventListener("click", () => {
+    gamePanel.style.display = "none";
+    settingsScreen.style.display = "none";
+    startScreen.style.display = "flex";
+  });
+
+  startBtn.addEventListener("click", () => {
+    startScreen.style.display = "none";
+    settingsScreen.style.display = "none";
+    gamePanel.style.display = "block";
+    setupBoard();
+    updateMusicState();
+  });
+
+  sizePrevBtn.addEventListener("click", () => {
+    sizeIndex = (sizeIndex - 1 + sizeOptions.length) % sizeOptions.length;
+    size = sizeOptions[sizeIndex];
+    updateSizeLabel();
+    updateSizePreview();
+  });
+
+  sizeNextBtn.addEventListener("click", () => {
+    sizeIndex = (sizeIndex + 1) % sizeOptions.length;
+    size = sizeOptions[sizeIndex];
+    updateSizeLabel();
+    updateSizePreview();
+  });
+
+  startSettingsBtn.addEventListener("click", () => {
+    startScreen.style.display = "none";
+    settingsScreen.style.display = "flex";
+  });
+
+  settingsReturnBtn.addEventListener("click", () => {
+    settingsScreen.style.display = "none";
+    startScreen.style.display = "flex";
+  });
+
+  settingsGameSoundBtn.addEventListener("click", () => {
+    gameSoundOn = !gameSoundOn;
+    updateSettingsButtonsUI();
+    updateMusicState();
+  });
+
+  settingsClickSoundBtn.addEventListener("click", () => {
+    clickSoundOn = !clickSoundOn;
+    updateSettingsButtonsUI();
+  });
+
+  updateSizeLabel();
+  updateSizePreview();
+  updateSettingsButtonsUI();
+</script>
+
+<!-- PWA: Service worker kaydı -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .catch(function (err) {
+          console.log("Service worker registration failed:", err);
+        });
+    });
+  }
+</script>
+
+</body>
+</html>

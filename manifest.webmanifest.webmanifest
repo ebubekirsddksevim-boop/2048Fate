@@ -1,0 +1,23 @@
+{
+  "name": "2048 Flex – Multi Size Edition",
+  "short_name": "2048 Flex",
+  "description": "Kaydırarak kutuları birleştirip 2048'e ulaşmaya çalıştığın çoklu boyutlu 2048 oyunu.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffeb3b",
+  "theme_color": "#ffeb3b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
